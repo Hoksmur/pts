@@ -23,12 +23,11 @@ void task3(arg_t vl)
 }
 
 
-
 int main(int argc, char **argv)
 {
 	struct pts_task_desc *desc; 
 
-	pts_task_init(task1, 2);
+	pts_task_init(task1, 1);
 	pts_task_init(task2, 2);
 	pts_task_init(task3, 0);
 	desc = pts_get_desc(task2);

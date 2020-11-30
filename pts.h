@@ -7,13 +7,17 @@
 // typedef char arg_t;
 // typedef int  arg_t;
 
+// undef if you really want use malloc()
+#define TAB_SZ 6
 
 /* Structure describes task, has status
  * and pointer to next task (or nillptr) */
 struct pts_task_desc {
 	arg_t stat;
-	struct pts_task_desc *next;
 	void (*func)(arg_t);
+#ifndef TAB_SZ
+	struct pts_task_desc *next;
+#endif
 };
 
 /* Add task to chain, where it can ran */
