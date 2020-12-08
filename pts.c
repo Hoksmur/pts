@@ -1,190 +1,121 @@
 #include "pts.h"
+#include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
-//  #include <stdio.h>
-
-#ifdef TAB_SZ
-static struct pts_task_desc tasks[TAB_SZ];
-#else
-#include <malloc.h>
-static struct pts_task_desc pts_entry = {.stat=0, .next=NULL, .func=NULL };
-#endif
 
 static bool again_fl = false;
+#ifdef USE_TAB
+ #ifdef TASK_ITEMS
+ static pts_task_t tasks[ITEM_COUNT] = TASK_ITEMS;
+ #else
+ static pts_task_t tasks[ITEM_COUNT];
+ #endif
+#define TYPE short int
+#define set_first(itm) itm = 0;
+#define is_valid(itm)  (tasks[itm].func != NULL)
+#define is_last(itm)   (itm >= ITEM_COUNT)
+#define next(itm) itm++
+#define task_fn(itm)  tasks[itm].func
+#define task_st(itm)  tasks[itm].stat
+#define ptr(itm)	&tasks[itm]
+#define create(itm, F, S) if(itm <ITEM_COUNT) { task_fn(itm) = F, task_st(itm) = S; }
 
-
-void pts_task_init( void(*fn)(arg_t), arg_t st)
-{
-#ifdef TAB_SZ
-	short i = 0;
-	struct pts_task_desc *p_tsk = &tasks[0];
-	while( (p_tsk->func != NULL) && (i<TAB_SZ)  ) {
-		i++, p_tsk = &tasks[i];
-	}
-	if (p_tsk->func == NULL) {
-		p_tsk->func = fn;
-		p_tsk->stat = st;
-		return;
-	}
 #else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->next != NULL) {
-		p_tsk = p_tsk->next;
+
+static pts_task_t tasks[ITEM_COUNT];
+#define TYPE pts_task_t *
+#define set_first(itm) itm = &tasks[0] 
+#define is_valid(itm)  (itm->func != NULL)
+#define is_last(itm)   (NULL == itm->next)
+#define next(itm)	itm = itm->next
+#define task_fn(itm)   itm->func
+#define task_st(itm)   itm->stat
+#define ptr(itm)	itm
+static void create( pts_task_t *last, void(*fn)(arg_t), arg_t st)
+{
+	short int i;
+	for( i = 0; i < ITEM_COUNT; i++) {
+		if( tasks[i].func == NULL ) {
+			tasks[i].func = fn;
+			tasks[i].stat = st;
+			tasks[i].next = NULL;
+			if(i != 0) { last->next = &tasks[i]; }
+			break;
+		}
 	}
-	if (p_tsk->func == NULL) {
-		p_tsk->func = fn;
-		p_tsk->stat = st;
-		return;
-	}
-	p_tsk->next = malloc(sizeof(struct pts_task_desc));
-	p_tsk = p_tsk->next;
-	p_tsk->next = NULL;
-	p_tsk->func = fn;
-	p_tsk->stat = st;
-	return;
-#endif
 }
 
+#endif
+
+#if !defined(TASK_ITEMS)
+void pts_task_init( void(*fn)(arg_t), arg_t st)
+{
+	TYPE set_first(item);
+	while( is_valid(item) ) {
+		if ( is_last(item) ) {
+			break; 
+		}
+		next(item);
+	}
+	create(item, fn, st);
+}
+#endif
 
 void pts_run_chain(void)
 {
-#ifdef TAB_SZ
-	short int i=0;
-	struct pts_task_desc *p_tsk = &tasks[0];
-	while(p_tsk->func != NULL) {
-		if (p_tsk->stat != 0) {
-			(p_tsk->func)(p_tsk->stat); // Call task's function
-			p_tsk->stat = 0;            // then clar state
-			if (again_fl)  { i=0, p_tsk = &tasks[0]; };  // Rerun chain if any 'stat' changed 
-			/* Use flag to prevent pass from begin after every task.*/
-			continue;
+	TYPE set_first(item);
+	while( is_valid(item) ) {
+		if (task_st(item) != 0) {
+			(task_fn(item))(task_st(item)); // Call function
+			task_st(item) = 0; // Clear state when ran.
+			if (again_fl) { // Rerun chain if any 'stat' changed 
+				set_first(item);
+				continue;
+			};  
 		}
-		if ( i>=TAB_SZ ) {
+		if ( is_last(item) ) { // if next isn't exist
 			break;
 		}
-		i++, p_tsk = &tasks[i];
+		next(item);
 	}
-#else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->func != NULL) {
-		if (p_tsk->stat != 0) {
-			(p_tsk->func)(p_tsk->stat); // Call task's function
-			p_tsk->stat = 0;            // then clar state
-			if (again_fl)  p_tsk = &pts_entry;  // Rerun chain if any 'stat' changed 
-			/* Use flag to prevent pass from begin after every task.*/
-			continue;
-		}
-		if ( p_tsk->next == NULL) {
-			break;
-		}
-		p_tsk = p_tsk->next;
-	}
-#endif
 }
 
 
 void pts_set_to( void (*fn)(arg_t), arg_t st)
 {
-#ifdef TAB_SZ
-	short int i=0;
-	struct pts_task_desc *p_tsk = &tasks[0];
-	while( p_tsk->func != fn) {
-		if ( i>=TAB_SZ ) {
+	TYPE set_first(item);
+	while( task_fn(item) != fn) { 
+		next(item);
+		if ( is_last(item) ) {
 			return;
 		}
-		i++, p_tsk = &tasks[i];
 	}
 	again_fl = true;
-	p_tsk->stat = st;
-#else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->func != fn) {
-		if ( p_tsk->next == NULL) {
-			return;
-		}
-		p_tsk = p_tsk->next;
-	}
-	again_fl = true;
-	p_tsk->stat = st;
-#endif
+	task_st(item) = st;
 }
 
-#if 0
-#include <stdio.h>
-void chain_print(void)
-{
-#ifdef TAB_SZ
-	short int i=0;
-	struct pts_task_desc *p_tsk = &tasks[i];
-	while( i<TAB_SZ) {
-		printf("  .func %X\t", p_tsk->func);
-		printf("  .stat %d\t", p_tsk->stat);
-		i++, p_tsk = &tasks[i];
-	}
-	printf("\n");
-#else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->next != NULL) {
-		printf("  .func %X\t", p_tsk->func);
-		printf("  .stat %d\t", p_tsk->stat);
-		printf("  .next %X\n", p_tsk->next);
-		p_tsk = p_tsk->next;
-	}
-	printf("  .func %X\t", p_tsk->func);
-	printf("  .stat %d\t", p_tsk->stat);
-	printf("  .next %X\n", p_tsk->next);
-#endif
-}
-#endif
 
-struct pts_task_desc *pts_get_desc( void (*fn)(arg_t) )
+pts_task_t *pts_get_desc( void (*fn)(arg_t) )
 {
-#ifdef TAB_SZ
-	short int i=0;
-	struct pts_task_desc *p_tsk = &tasks[0];
-	while( p_tsk->func != fn) {
-		if ( i>=TAB_SZ ) {
-			p_tsk = NULL;
-			break;
+	TYPE set_first(item);
+	while( task_fn(item) != fn) {
+		next(item);
+		if ( is_last(item) ) {
+			return NULL;
 		}
-		i++, p_tsk = &tasks[i];
 	}
-	return p_tsk;
-#else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->func != fn) {
-		if ( p_tsk->next == NULL) {
-			p_tsk = NULL;
-			break;
-		}
-		p_tsk = p_tsk->next;
-	}
-	return p_tsk;
-#endif
+	return ptr(item);
 }
 
 void pts_setmask_to( void (*fn)(arg_t), arg_t msk)
 {
-#ifdef TAB_SZ
-	short int i=0;
-	struct pts_task_desc *p_tsk = &tasks[i];
-	while( p_tsk->func != fn) {
-		if ( i >= TAB_SZ) {
+	TYPE set_first(item);
+	while( task_fn(item) != fn) { // If not the same
+		next(item);
+		if ( is_last(item) ) {
 			return;
 		}
-		i++, p_tsk = &tasks[i];
 	}
 	again_fl = true;
-	p_tsk->stat |= msk;
-#else
-	struct pts_task_desc *p_tsk = &pts_entry;
-	while( p_tsk->func != fn) {
-		if ( p_tsk->next == NULL) {
-			return;
-		}
-		p_tsk = p_tsk->next;
-	}
-	again_fl = true;
-	p_tsk->stat |= msk;
-#endif
+	task_st(item) |= msk;
 }
-
