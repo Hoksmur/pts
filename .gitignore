@@ -1,0 +1,3 @@
+*.exe
+stm8/build/*.*
+!stm8/build/main.hex
