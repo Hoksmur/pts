@@ -85,9 +85,10 @@ void pts_set_to( void (*fn)(arg_t), arg_t st)
 {
 	TYPE set_first(item);
 	while( task_fn(item) != fn) { 
-		next(item);
 		if ( is_last(item) ) {
 			return;
+		} else {
+			next(item);
 		}
 	}
 	again_fl = true;
@@ -99,10 +100,10 @@ pts_task_t *pts_get_desc( void (*fn)(arg_t) )
 {
 	TYPE set_first(item);
 	while( task_fn(item) != fn) {
-		next(item);
 		if ( is_last(item) ) {
 			return NULL;
 		}
+		next(item);
 	}
 	return ptr(item);
 }
