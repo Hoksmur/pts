@@ -85,23 +85,23 @@
 #define PD6  GPIOD, 6
 #define PD7  GPIOD, 7
 
-#define PE0  GPIOC, 0
-#define PE1  GPIOC, 1
-#define PE2  GPIOC, 2
-#define PE3  GPIOC, 3
-#define PE4  GPIOC, 4
-#define PE5  GPIOC, 5
-#define PE6  GPIOC, 6
-#define PE7  GPIOC, 7
+#define PE0  GPIOE, 0
+#define PE1  GPIOE, 1
+#define PE2  GPIOE, 2
+#define PE3  GPIOE, 3
+#define PE4  GPIOE, 4
+#define PE5  GPIOE, 5
+#define PE6  GPIOE, 6
+#define PE7  GPIOE, 7
 
-#define PF0  GPIOC, 0
-#define PF1  GPIOC, 1
-#define PF2  GPIOC, 2
-#define PF3  GPIOC, 3
-#define PF4  GPIOC, 4
-#define PF5  GPIOC, 5
-#define PF6  GPIOC, 6
-#define PF7  GPIOC, 7
+#define PF0  GPIOF, 0
+#define PF1  GPIOF, 1
+#define PF2  GPIOF, 2
+#define PF3  GPIOF, 3
+#define PF4  GPIOF, 4
+#define PF5  GPIOF, 5
+#define PF6  GPIOF, 6
+#define PF7  GPIOF, 7
 
 #else 
   #warning "Use this file with avmacro.h"
